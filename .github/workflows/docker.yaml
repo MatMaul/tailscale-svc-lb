@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
@@ -23,14 +25,16 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: clrxbl/tailscale-svc-lb-controller:latest
+          tags: matmaul/tailscale-svc-lb-controller:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
       - name: Build and push runtime image
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: clrxbl/tailscale-svc-lb-runtime:latest
+          tags: matmaul/tailscale-svc-lb-runtime:latest
           context: "{{defaultContext}}:runtime"
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64

@@ -63,6 +63,6 @@ runtime:
 
 leaderElector:
   image:
-    repository: gcr.io/google_containers/leader-elector
-    pullPolicy: IfNotPresent
-    tag: "0.4"
+    repository: ghcr.io/matmaul/leader-elector
+    pullPolicy: Always
+    tag: "latest"
