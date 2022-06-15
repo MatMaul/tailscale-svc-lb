@@ -65,7 +65,7 @@ def configure(settings: kopf.OperatorSettings, **_):
 @kopf.on.update("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
 @kopf.on.delete("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
 def handle_svc_lb(spec, name, logger, **kwargs):
-    if "loadBalancerClass" in spec and spec.loadBalancerClass == LOAD_BALANCER_CLASS:
+    if "loadBalancerClass" in spec and spec["loadBalancerClass"] == LOAD_BALANCER_CLASS:
         update_svc_lb(name)
     else:
         delete_svc_lb(name)
