@@ -63,7 +63,14 @@ def configure(settings: kopf.OperatorSettings, **_):
 
 @kopf.on.create("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
 @kopf.on.update("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
-def create_svc_lb(spec, name, logger, **kwargs):
+@kopf.on.delete("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
+def handle_svc_lb(spec, name, logger, **kwargs):
+    if "loadBalancerClass" in spec and spec.loadBalancerClass == LOAD_BALANCER_CLASS:
+        update_svc_lb(name)
+    else:
+        delete_svc_lb(name)
+
+def update_svc_lb(name):
     """
     Create a service load balancer instance.
     """
@@ -240,26 +247,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
         ),
     )
 
-
-@kopf.on.field("secrets", field="data.ts-ip")
-def update_svc(body, namespace, **kwargs):
-    """
-    Update the LoadBalancer service status with the Tailscale IP.
-    """
-
-    # Get service name from svc-lb label
-    service = body["metadata"]["labels"][SERVICE_NAME_LABEL]
-
-    # Get Tailscale IP from the service's secret
-    ip = base64.b64decode(body["data"]["ts-ip"]).decode("utf-8")
-
-    logging.info(f"Updating LoadBalancer service in namespace {namespace} with Tailscale IP {ip}")
-
-    update_service_status(namespace, service, ip)
-
-
-@kopf.on.delete("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
-def delete_svc_lb(spec, name, logger, **kwargs):
+def delete_svc_lb(name):
     """
     Delete all created service load balancer resources.
     """
@@ -303,6 +291,24 @@ def delete_svc_lb(spec, name, logger, **kwargs):
     )
 
     # TODO: Automatically remove device from tailnet
+
+@kopf.on.field("secrets", field="data.ts-ip")
+def update_svc(body, namespace, **kwargs):
+    """
+    Update the LoadBalancer service status with the Tailscale IP.
+    """
+
+    # Get service name from svc-lb label
+    service = body["metadata"]["labels"][SERVICE_NAME_LABEL]
+
+    # Get Tailscale IP from the service's secret
+    ip = base64.b64decode(body["data"]["ts-ip"]).decode("utf-8")
+
+    logging.info(f"Updating LoadBalancer service in namespace {namespace} with Tailscale IP {ip}")
+
+    update_service_status(namespace, service, ip)
+
+
 
 def update_namespaced_resource(k8s, resource_type, name, namespace, body):
     res = None
