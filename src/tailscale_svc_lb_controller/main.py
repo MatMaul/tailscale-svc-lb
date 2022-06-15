@@ -67,9 +67,6 @@ def create_svc_lb(spec, name, logger, **kwargs):
     """
     Create a service load balancer instance.
     """
-
-    importlib.reload(
-
     namespace = OPERATOR_NAMESPACE
     logging.info(f"Creating svc-lb resources in namespace {namespace} for service {name}")
 
