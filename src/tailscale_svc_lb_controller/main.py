@@ -74,7 +74,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
 
     # Create ServiceAccount
     k8s = kubernetes.client.CoreV1Api()
-    k8s.create_namespaced_service_account(namespace=namespace, body=kubernetes.client.V1ServiceAccount(
+    k8s.replace_namespaced_service_account(namespace=namespace, body=kubernetes.client.V1ServiceAccount(
         metadata=kubernetes.client.V1ObjectMeta(
             name=RESOURCE_PREFIX + name,
             labels=common_labels,
@@ -110,7 +110,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
             )
         ],
     )
-    k8s.create_namespaced_role(namespace, role)
+    k8s.replace_namespaced_role(namespace, role)
 
     # Create RoleBinding
     role_binding = kubernetes.client.V1RoleBinding(
@@ -132,7 +132,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
             ),
         ],
     )
-    k8s.create_namespaced_role_binding(namespace, role_binding)
+    k8s.replace_namespaced_role_binding(namespace, role_binding)
 
     # Create Secret
     k8s = kubernetes.client.CoreV1Api()
@@ -145,11 +145,11 @@ def create_svc_lb(spec, name, logger, **kwargs):
         type="Opaque",
         string_data={}
     )
-    k8s.create_namespaced_secret(namespace, secret)
+    k8s.replace_namespaced_secret(namespace, secret)
 
     # Create the DaemonSet
     k8s = kubernetes.client.AppsV1Api()
-    k8s.create_namespaced_daemon_set(
+    k8s.replace_namespaced_daemon_set(
         namespace=namespace,
         body=kubernetes.client.V1DaemonSet(
             metadata=kubernetes.client.V1ObjectMeta(
