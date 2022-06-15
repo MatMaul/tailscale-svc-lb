@@ -62,6 +62,7 @@ def configure(settings: kopf.OperatorSettings, **_):
 
 
 @kopf.on.create("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
+@kopf.on.update("services", field="spec.loadBalancerClass", value=LOAD_BALANCER_CLASS)
 def create_svc_lb(spec, name, logger, **kwargs):
     """
     Create a service load balancer instance.
@@ -76,7 +77,9 @@ def create_svc_lb(spec, name, logger, **kwargs):
 
     # Create ServiceAccount
     k8s = kubernetes.client.CoreV1Api()
-    k8s.replace_namespaced_service_account(
+    update_namespaced_resource(
+        k8s=k8s,
+        resource_type="service_account",
         name=base_name,
         namespace=namespace,
         body=kubernetes.client.V1ServiceAccount(
@@ -116,7 +119,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
             )
         ],
     )
-    k8s.replace_namespaced_role(base_name, namespace, role)
+    update_namespaced_resource(k8s, "role", base_name, namespace, role)
 
     # Create RoleBinding
     role_binding = kubernetes.client.V1RoleBinding(
@@ -138,7 +141,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
             ),
         ],
     )
-    k8s.replace_namespaced_role_binding(base_name, namespace, role_binding)
+    update_namespaced_resource(k8s, "role_binding", base_name, namespace, role_binding)
 
     # Create Secret
     k8s = kubernetes.client.CoreV1Api()
@@ -151,11 +154,13 @@ def create_svc_lb(spec, name, logger, **kwargs):
         type="Opaque",
         string_data={}
     )
-    k8s.replace_namespaced_secret(base_name, namespace, secret)
+    update_namespaced_resource(k8s, "secret", base_name, namespace, secret)
 
     # Create the DaemonSet
     k8s = kubernetes.client.AppsV1Api()
-    k8s.replace_namespaced_daemon_set(
+    update_namespaced_resource(
+        k8s=k8s,
+        resource_type="daemon_set",
         name=base_name,
         namespace=namespace,
         body=kubernetes.client.V1DaemonSet(
@@ -299,3 +304,30 @@ def delete_svc_lb(spec, name, logger, **kwargs):
     )
 
     # TODO: Automatically remove device from tailnet
+
+def update_namespaced_resource(k8s, resource_type, name, namespace, body):
+    res = None
+
+    # get the resource, if not there create it and return
+    try:
+        res = getattr(k8s, f"get_namespaced_{resource_type}")(
+            name=name,
+            namespace=namespace,
+            body=body
+        )
+    except kubernetes.client.exceptions.ApiException as e:
+        if e.status == 404:
+            getattr(k8s, f"create_namespaced_{resource_type}")(
+                namespace=namespace,
+                body=body
+            )
+            return
+        else:
+            raise e
+
+    # else patch the existing resource
+    getattr(k8s, f"patch_namespaced_{resource_type}")(
+        name=name,
+        namespace=namespace,
+        body=body
+    )
