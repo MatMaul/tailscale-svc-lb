@@ -310,7 +310,7 @@ def update_namespaced_resource(k8s, resource_type, name, namespace, body):
 
     # get the resource, if not there create it and return
     try:
-        res = getattr(k8s, f"get_namespaced_{resource_type}")(
+        res = getattr(k8s, f"read_namespaced_{resource_type}")(
             name=name,
             namespace=namespace,
             body=body
