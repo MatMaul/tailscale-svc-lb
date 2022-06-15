@@ -72,21 +72,27 @@ def create_svc_lb(spec, name, logger, **kwargs):
 
     common_labels = get_common_labels(name)
 
+    base_name = RESOURCE_PREFIX + name
+
     # Create ServiceAccount
     k8s = kubernetes.client.CoreV1Api()
-    k8s.replace_namespaced_service_account(namespace=namespace, body=kubernetes.client.V1ServiceAccount(
-        metadata=kubernetes.client.V1ObjectMeta(
-            name=RESOURCE_PREFIX + name,
-            labels=common_labels,
-            namespace=namespace
+    k8s.replace_namespaced_service_account(
+        name=base_name,
+        namespace=namespace,
+        body=kubernetes.client.V1ServiceAccount(
+            metadata=kubernetes.client.V1ObjectMeta(
+                name=base_name,
+                labels=common_labels,
+                namespace=namespace
+            )
         )
-    ))
+    )
 
     # Create Role to manage secrets
     k8s = kubernetes.client.RbacAuthorizationV1Api()
     role = kubernetes.client.V1Role(
         metadata=kubernetes.client.V1ObjectMeta(
-            name=RESOURCE_PREFIX + name,
+            name=base_name,
             labels=common_labels,
             namespace=namespace,
         ),
@@ -110,50 +116,51 @@ def create_svc_lb(spec, name, logger, **kwargs):
             )
         ],
     )
-    k8s.replace_namespaced_role(namespace, role)
+    k8s.replace_namespaced_role(base_name, namespace, role)
 
     # Create RoleBinding
     role_binding = kubernetes.client.V1RoleBinding(
         metadata=kubernetes.client.V1ObjectMeta(
-            name=RESOURCE_PREFIX + name,
+            name=base_name,
             labels=common_labels,
             namespace=namespace,
         ),
         role_ref=kubernetes.client.V1RoleRef(
             api_group="rbac.authorization.k8s.io",
             kind="Role",
-            name=RESOURCE_PREFIX + name,
+            name=base_name,
         ),
         subjects=[
             kubernetes.client.V1Subject(
                 kind="ServiceAccount",
-                name=RESOURCE_PREFIX + name,
+                name=base_name,
                 namespace=namespace,
             ),
         ],
     )
-    k8s.replace_namespaced_role_binding(namespace, role_binding)
+    k8s.replace_namespaced_role_binding(base_name, namespace, role_binding)
 
     # Create Secret
     k8s = kubernetes.client.CoreV1Api()
     secret = kubernetes.client.V1Secret(
         metadata=kubernetes.client.V1ObjectMeta(
-            name=RESOURCE_PREFIX + name,
+            name=base_name,
             labels=common_labels,
             namespace=namespace,
         ),
         type="Opaque",
         string_data={}
     )
-    k8s.replace_namespaced_secret(namespace, secret)
+    k8s.replace_namespaced_secret(base_name, namespace, secret)
 
     # Create the DaemonSet
     k8s = kubernetes.client.AppsV1Api()
     k8s.replace_namespaced_daemon_set(
+        name=base_name,
         namespace=namespace,
         body=kubernetes.client.V1DaemonSet(
             metadata=kubernetes.client.V1ObjectMeta(
-                name=RESOURCE_PREFIX + name,
+                name=base_name,
                 labels=common_labels
             ),
             spec=kubernetes.client.V1DaemonSetSpec(
@@ -165,8 +172,8 @@ def create_svc_lb(spec, name, logger, **kwargs):
                         labels=common_labels
                     ),
                     spec=kubernetes.client.V1PodSpec(
-                        service_account=RESOURCE_PREFIX + name,
-                        service_account_name=RESOURCE_PREFIX + name,
+                        service_account=base_name,
+                        service_account_name=base_name,
                         node_selector={NODE_SELECTOR_LABEL: "true"},
                         containers=[
                             kubernetes.client.V1Container(
@@ -175,7 +182,7 @@ def create_svc_lb(spec, name, logger, **kwargs):
                                 image_pull_policy="Always", # TODO: Return to IfNotPresent
                                 env=[
                                     kubernetes.client.V1EnvVar(
-                                        name="TS_KUBE_SECRET", value=RESOURCE_PREFIX + name
+                                        name="TS_KUBE_SECRET", value=base_name
                                     ),
                                     kubernetes.client.V1EnvVar(
                                         name="SVC_NAME", value=name
