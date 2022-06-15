@@ -68,6 +68,8 @@ def create_svc_lb(spec, name, logger, **kwargs):
     Create a service load balancer instance.
     """
 
+    importlib.reload(
+
     namespace = OPERATOR_NAMESPACE
     logging.info(f"Creating svc-lb resources in namespace {namespace} for service {name}")
 
@@ -312,8 +314,7 @@ def update_namespaced_resource(k8s, resource_type, name, namespace, body):
     try:
         res = getattr(k8s, f"read_namespaced_{resource_type}")(
             name=name,
-            namespace=namespace,
-            body=body
+            namespace=namespace
         )
     except kubernetes.client.exceptions.ApiException as e:
         if e.status == 404:
