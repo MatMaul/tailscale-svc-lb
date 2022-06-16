@@ -56,7 +56,13 @@ fi
 echo "Running tailscale up"
 tailscale --socket=/tmp/tailscaled.sock up ${UP_ARGS}
 
-TS_IP=$(tailscale --socket=/tmp/tailscaled.sock ip -4)
+while [[ "${TS_IP}" == "" ]]; do
+  TS_IP=$(tailscale --socket=/tmp/tailscaled.sock ip -4)
+  if [[ "${TS_IP}" == "" ]]; then
+    sleep 1
+  fi
+done
+
 TS_IP_B64=$(echo -n "${TS_IP}" | base64 -w 0)
 
 # Technically can get the service ClusterIP through the <svc-name>_SERVICE_HOST variable
